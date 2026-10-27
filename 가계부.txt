@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스마트 가계부</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 80px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* 요약 카드 */
+        .summary-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .summary-total {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .summary-total h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .summary-total .amount {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+
+        .summary-item h4 {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .summary-item p {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .income-text { color: var(--success); }
+        .expense-text { color: var(--danger); }
+
+        /* 입력 폼 섹션 */
+        .form-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .form-card h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-btn.active.income {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .type-btn.active.expense {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #fff;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .submit-btn:active {
+            opacity: 0.9;
+        }
+
+        /* 내역 리스트 */
+        .history-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-header h3 {
+            font-size: 1rem;
+        }
+
+        .history-list {
+            list-style: none;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-info .desc {
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .history-info .date-cat {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .history-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-amount {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .empty-notice {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 24px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        💰 스마트 가계부
+    </header>
+
+    <div class="container">
+        <!-- 요약 섹션 -->
+        <div class="summary-card">
+            <div class="summary-total">
+                <h3>현재 잔액</h3>
+                <p class="amount" id="totalBalance">0원</p>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <h4>총 수입</h4>
+                    <p class="income-text" id="totalIncome">0원</p>
+                </div>
+                <div class="summary-item">
+                    <h4>총 지출</h4>
+                    <p class="expense-text" id="totalExpense">0원</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 입력 폼 -->
+        <div class="form-card">
+            <h3>내역 추가하기</h3>
+            <div class="type-selector">
+                <button type="button" class="type-btn active expense" id="expenseBtn" onclick="setType('expense')">지출</button>
+                <button type="button" class="type-btn income" id="incomeBtn" onclick="setType('income')">수입</button>
+            </div>
+            <form id="transactionForm" onsubmit="addTransaction(event)">
+                <div class="input-group">
+                    <label>날짜</label>
+                    <input type="date" id="dateInput" required>
+                </div>
+                <div class="input-group">
+                    <label>분류</label>
+                    <select id="categoryInput">
+                        <!-- 지출 카테고리 기본값 -->
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>내용 (메모)</label>
+                    <input type="text" id="descInput" placeholder="예: 점심 식사, 월급 등" required>
+                </div>
+                <div class="input-group">
+                    <label>금액 (원)</label>
+                    <input type="tel" id="amountInput" placeholder="숫자만 입력" required>
+                </div>
+                <button type="submit" class="submit-btn">추가하기</button>
+            </form>
+        </div>
+
+        <!-- 내역 리스트 -->
+        <div class="history-card">
+            <div class="history-header">
+                <h3>입출금 내역</h3>
+            </div>
+            <ul id="historyList" class="history-list">
+                <!-- 자바스크립트로 동적 생성 -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 카테고리 정의
+        const categories = {
+            expense: ['식비', '교통', '쇼핑', '주거/통신', '문화/여가', '기타'],
+            income: ['월급', '용돈', '부수입', '기타']
+        };
+
+        let currentType = 'expense';
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        // 오늘 날짜 기본 세팅
+        document.getElementById('dateInput').valueAsDate = new Date();
+
+        // 타입 변경 (수입/지출)
+        function setType(type) {
+            currentType = type;
+            const expenseBtn = document.getElementById('expenseBtn');
+            const incomeBtn = document.getElementById('incomeBtn');
+            
+            if (type === 'expense') {
+                expenseBtn.classList.add('active', 'expense');
+                incomeBtn.classList.remove('active', 'income');
+            } else {
+                incomeBtn.classList.add('active', 'income');
+                expenseBtn.classList.remove('active', 'expense');
+            }
+            updateCategories();
+        }
+
+        // 카테고리 셀렉트박스 업데이트
+        function updateCategories() {
+            const categorySelect = document.getElementById('categoryInput');
+            categorySelect.innerHTML = '';
+            categories[currentType].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        // 금액 포맷팅 (콤마 추가)
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // 거래 추가
+        function addTransaction(e) {
+            e.preventDefault();
+            
+            const date = document.getElementById('dateInput').value;
+            const category = document.getElementById('categoryInput').value;
+            const desc = document.getElementById('descInput').value;
+            const amount = Number(document.getElementById('amountInput').value.replace(/,/g, ''));
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('올바른 금액을 입력해주세요.');
+                return;
+            }
+
+            const transaction = {
+                id: Date.now(),
+                type: currentType,
+                date,
+                category,
+                desc,
+                amount
+            };
+
+            transactions.push(transaction);
+            saveAndRender();
+
+            // 폼 초기화
+            document.getElementById('descInput').value = '';
+            document.getElementById('amountInput').value = '';
+            document.getElementById('dateInput').valueAsDate = new Date();
+        }
+
+        // 거래 삭제
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveAndRender();
+        }
+
+        // 저장 및 화면 렌더링
+        function saveAndRender() {
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            render();
+        }
+
+        // 화면 렌더링
+        function render() {
+            const listEl = document.getElementById('historyList');
+            const totalBalanceEl = document.getElementById('totalBalance');
+            const totalIncomeEl = document.getElementById('totalIncome');
+            const totalExpenseEl = document.getElementById('totalExpense');
+
+            listEl.innerHTML = '';
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            // 날짜 최신순 정렬
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sortedTransactions.length === 0) {
+                listEl.innerHTML = '<li class="empty-notice">등록된 내역이 없습니다.</li>';
+            } else {
+                sortedTransactions.forEach(t => {
+                    if (t.type === 'income') {
+                        totalIncome += t.amount;
+                    } else {
+                        totalExpense += t.amount;
+                    }
+
+                    const li = document.createElement('li');
+                    li.className = 'history-item';
+                    li.innerHTML = `
+                        <div class="history-info">
+                            <div class="desc">${t.desc}</div>
+                            <div class="date-cat">${t.date} | ${t.category}</div>
+                        </div>
+                        <div class="history-right">
+                            <div class="history-amount ${t.type === 'income' ? 'income-text' : 'expense-text'}">
+                                ${t.type === 'income' ? '+' : '-'}${formatNumber(t.amount)}원
+                            </div>
+                            <button class="delete-btn" onclick="deleteTransaction(${t.id})">&times;</button>
+                        </div>
+                    `;
+                    listEl.appendChild(li);
+                });
+            }
+
+            const totalBalance = totalIncome - totalExpense;
+            totalBalanceEl.textContent = formatNumber(totalBalance) + '원';
+            totalIncomeEl.textContent = formatNumber(totalIncome) + '원';
+            totalExpenseEl.textContent = formatNumber(totalExpense) + '원';
+        }
+
+        // 초기 실행
+        updateCategories();
+        render();
+    </script>
+</body>
+</html>
