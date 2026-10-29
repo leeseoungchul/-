@@ -1,0 +1,634 @@
+<title>맛집메모</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column like a receipt roll; dashed rules separate fields, a bottom sheet holds detail and edit. */
+:root {
+  --bg: #F2F4F0;
+  --surface: #FFFFFF;
+  --ink: #17201C;
+  --muted: #5B6861;
+  --line: #CDD5CF;
+  --chip: #E5EBE6;
+  --accent: #0E6B5B;
+  --accent-ink: #FFFFFF;
+  --star: #C98A00;
+  --danger: #B3372B;
+  --scrim: rgba(10, 16, 13, 0.45);
+  --f-display: "Do Hyeon", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1513;
+    --surface: #18201D;
+    --ink: #E7EEE9;
+    --muted: #9AA7A0;
+    --line: #2C3732;
+    --chip: #212B27;
+    --accent: #52C4A8;
+    --accent-ink: #07231C;
+    --star: #F0B429;
+    --danger: #FF8A7A;
+    --scrim: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1513;
+  --surface: #18201D;
+  --ink: #E7EEE9;
+  --muted: #9AA7A0;
+  --line: #2C3732;
+  --chip: #212B27;
+  --accent: #52C4A8;
+  --accent-ink: #07231C;
+  --star: #F0B429;
+  --danger: #FF8A7A;
+  --scrim: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html.lock { overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-block: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 640px; margin: 0 auto; padding-bottom: 110px; }
+
+/* header */
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--bg);
+  padding: 14px 0 12px;
+  border-bottom: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.brand { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; line-height: 1.1; letter-spacing: 0.01em; text-wrap: balance; }
+.counts { margin: 2px 0 0; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.link-btn { background: none; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; color: var(--ink); font-size: 13px; min-height: 40px; }
+.search {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 16px;
+  min-height: 46px;
+}
+.search::placeholder { color: var(--muted); }
+
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { flex: 1; border: 0; background: transparent; padding: 10px 6px; min-height: 44px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 1px 1px 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { flex: none; border: 1px solid var(--line); background: var(--chip); border-radius: 999px; padding: 6px 14px; min-height: 36px; font-size: 13px; }
+.chips button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; background: var(--surface); }
+
+/* list */
+.list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 8px; color: var(--muted); font-size: 13px; }
+.list-head select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; min-height: 36px; }
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; cursor: pointer; }
+.card:active { background: var(--chip); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.name { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 21px; line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+.pill { flex: none; font-size: 12px; line-height: 1; padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.visited { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.pill.want { border: 1px dashed var(--muted); color: var(--muted); }
+.tag-sample { display: inline-block; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 4px; background: var(--chip); color: var(--muted); margin-left: 6px; vertical-align: middle; font-family: var(--f-body); }
+.meta { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.rate { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stars { letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
+.stars .on { color: var(--star); }
+.stars .off { color: var(--line); }
+.note { margin: 2px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px; overflow-wrap: anywhere; }
+.note b { font-weight: 700; }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.empty { border: 1px dashed var(--line); border-radius: 14px; padding: 36px 20px; text-align: center; color: var(--muted); }
+.empty strong { display: block; color: var(--ink); font-family: var(--f-display); font-weight: 400; font-size: 20px; margin-bottom: 6px; }
+
+/* add button */
+.fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 15;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  border-radius: 999px;
+  min-height: 52px;
+  padding: 0 22px;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* sheet */
+.scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); }
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  animation: rise 0.2s ease-out;
+}
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px dashed var(--line); }
+.sheet-bar h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 16px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 16px; min-height: 46px; font-size: 15px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { min-height: 38px; padding: 6px 12px; font-size: 13px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1 1 120px; }
+
+/* detail */
+.d-name { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 28px; line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
+.d-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dl { margin: 0; display: flex; flex-direction: column; }
+.dl > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-top: 1px dashed var(--line); min-width: 0; }
+.dl dt { color: var(--muted); font-size: 12px; letter-spacing: 0.06em; }
+.dl dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.addr-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.addr-row span { min-width: 0; overflow-wrap: anywhere; }
+.maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.maps a { display: block; text-align: center; padding: 11px 6px; border: 1px solid var(--accent); color: var(--accent); border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; min-height: 44px; }
+.confirm { border: 1px dashed var(--danger); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.confirm p { margin: 0; }
+
+/* form */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .lab { font-size: 13px; color: var(--muted); }
+.in { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 16px; min-height: 46px; }
+textarea.in { resize: vertical; min-height: 110px; line-height: 1.5; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 380px) { .two { grid-template-columns: 1fr; } }
+.seg2 { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg2 label { flex: 1; position: relative; }
+.seg2 input { position: absolute; opacity: 0; inset: 0; }
+.seg2 span { display: block; text-align: center; padding: 11px 6px; min-height: 46px; }
+.seg2 label + label span { border-left: 1px solid var(--line); }
+.seg2 input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.seg2 input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -4px; }
+.stars-in { display: flex; gap: 4px; }
+.stars-in button { background: none; border: 0; font-size: 32px; line-height: 1; padding: 4px 6px; min-width: 44px; min-height: 44px; color: var(--line); }
+.stars-in button.on { color: var(--star); }
+.err { margin: 0; min-height: 1em; color: var(--danger); font-size: 13px; }
+
+.help { margin: 0; color: var(--muted); font-size: 13px; }
+.sec-title { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 18px; }
+.bk { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.bk:first-child { border-top: 0; padding-top: 0; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; min-height: 120px; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); text-align: center; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div>
+        <h1>맛집메모</h1>
+        <p class="counts" id="counts"></p>
+      </div>
+      <button class="link-btn" id="btn-backup" type="button">백업</button>
+    </div>
+    <input class="search" id="q" type="search" placeholder="이름, 동네, 메뉴, 메모 검색" autocomplete="off" aria-label="맛집 검색">
+    <div class="seg" id="status-seg" role="group" aria-label="상태 필터"></div>
+    <div class="chips" id="cat-row" role="group" aria-label="종류 필터"></div>
+  </header>
+
+  <div class="list-head">
+    <span id="result-count"></span>
+    <select id="sort" aria-label="정렬">
+      <option value="recent">최근 추가순</option>
+      <option value="rating">별점 높은순</option>
+      <option value="name">이름순</option>
+    </select>
+  </div>
+  <div class="cards" id="list"></div>
+</div>
+
+<button class="fab" id="fab" type="button">+ 맛집 추가</button>
+
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+  <div class="sheet-bar">
+    <h2 id="sheet-title"></h2>
+    <button class="btn small" id="sheet-close" type="button">닫기</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</section>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'matjip-memo-v1';
+  var CATS = ['한식', '중식', '일식', '양식', '분식', '카페', '술집', '기타'];
+  var SHEETS = ['detail', 'edit', 'backup'];
+  var items = [];
+  var ui = { q: '', status: 'all', cat: 'all', sort: 'recent' };
+  var currentId = null, editingId = null, formRating = 0, confirmDel = false, warnedStorage = false, toastTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+  function p2(n) { return n < 10 ? '0' + n : '' + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function fmtDate(s) { return s ? s.replace(/-/g, '.') : ''; }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function byId(id) { for (var i = 0; i < items.length; i++) { if (items[i].id === id) return items[i]; } return null; }
+
+  /* storage */
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var d = JSON.parse(raw); if (Array.isArray(d)) return d; }
+    } catch (e) {}
+    return null;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(items)); }
+    catch (e) {
+      if (!warnedStorage) { warnedStorage = true; toast('이 브라우저에서는 저장이 막혀 있어요. 백업 텍스트를 따로 복사해 두세요.'); }
+    }
+  }
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  function seed() {
+    var now = Date.now(), day = 86400000;
+    return [
+      { id: uid(), sample: true, name: '골목 칼국수', cat: '한식', addr: '성수동', status: 'visited', rating: 4, date: today(), dish: '바지락칼국수, 만두', memo: '점심 12시 전에 가면 대기 없음. 겉절이가 맛있음.', createdAt: now - 1 * day },
+      { id: uid(), sample: true, name: '새벽 라멘', cat: '일식', addr: '연남동', status: 'want', rating: 0, date: '', dish: '', memo: '친구 추천. 국물이 진한 편이라고 함. 웨이팅 있을 수 있음.', createdAt: now - 2 * day },
+      { id: uid(), sample: true, name: '언덕 위 카페', cat: '카페', addr: '해방촌', status: 'visited', rating: 5, date: today(), dish: '크림라떼, 소금빵', memo: '창가 자리는 두 곳뿐. 평일 오후에 가기.', createdAt: now - 3 * day }
+    ];
+  }
+
+  /* filtering */
+  function listItems() {
+    var q = ui.q.trim().toLowerCase();
+    var r = items.filter(function (it) {
+      if (ui.status !== 'all' && it.status !== ui.status) return false;
+      if (ui.cat !== 'all' && it.cat !== ui.cat) return false;
+      if (q) {
+        var hay = [it.name, it.cat, it.addr, it.dish, it.memo].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+    r.sort(function (a, b) {
+      if (ui.sort === 'name') return a.name.localeCompare(b.name, 'ko');
+      if (ui.sort === 'rating') { var d = (b.rating || 0) - (a.rating || 0); if (d) return d; }
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+    return r;
+  }
+
+  function starsHtml(n) {
+    var s = '';
+    for (var i = 1; i <= 5; i++) s += '<span class="' + (i <= n ? 'on' : 'off') + '">★</span>';
+    return '<span class="stars" role="img" aria-label="별점 ' + n + '점">' + s + '</span>';
+  }
+
+  /* render */
+  function renderControls() {
+    var v = 0, w = 0;
+    items.forEach(function (it) { if (it.status === 'visited') v++; else w++; });
+    $('counts').textContent = '가본 곳 ' + v + ' · 가볼 곳 ' + w;
+    var segs = [['all', '전체', items.length], ['want', '가볼 곳', w], ['visited', '가본 곳', v]];
+    $('status-seg').innerHTML = segs.map(function (s) {
+      return '<button type="button" data-status="' + s[0] + '" aria-pressed="' + (ui.status === s[0]) + '">' + s[1] + ' ' + s[2] + '</button>';
+    }).join('');
+    $('cat-row').innerHTML = ['all'].concat(CATS).map(function (c) {
+      return '<button type="button" data-cat="' + c + '" aria-pressed="' + (ui.cat === c) + '">' + (c === 'all' ? '모든 종류' : c) + '</button>';
+    }).join('');
+  }
+
+  function renderList() {
+    var r = listItems();
+    $('result-count').textContent = r.length + '곳';
+    var box = $('list');
+    if (!items.length) {
+      box.innerHTML = '<div class="empty"><strong>아직 적어 둔 맛집이 없어요</strong>아래 + 맛집 추가 버튼으로 첫 번째 가게를 적어 보세요.</div>';
+      return;
+    }
+    if (!r.length) {
+      box.innerHTML = '<div class="empty"><strong>맞는 가게가 없어요</strong>검색어나 필터를 바꿔 보세요.</div>';
+      return;
+    }
+    box.innerHTML = r.map(function (it) {
+      var meta = esc(it.cat) + (it.addr ? ' · ' + esc(it.addr) : '');
+      var rate = '';
+      if (it.status === 'visited') {
+        rate = '<div class="rate">' + (it.rating ? starsHtml(it.rating) : '<span>별점 없음</span>') + (it.date ? '<span>' + fmtDate(it.date) + '</span>' : '') + '</div>';
+      }
+      var note = '';
+      if (it.dish || it.memo) {
+        note = '<div class="note">' + (it.dish ? '<div class="clamp"><b>메뉴</b> ' + esc(it.dish) + '</div>' : '') + (it.memo ? '<div class="clamp">' + esc(it.memo) + '</div>' : '') + '</div>';
+      }
+      return '<div class="card" role="button" tabindex="0" data-id="' + esc(it.id) + '">' +
+        '<div class="card-top"><h3 class="name">' + esc(it.name) + (it.sample ? '<span class="tag-sample">예시</span>' : '') + '</h3>' +
+        '<span class="pill ' + (it.status === 'visited' ? 'visited' : 'want') + '">' + (it.status === 'visited' ? '가본 곳' : '가볼 곳') + '</span></div>' +
+        '<p class="meta">' + meta + '</p>' + rate + note + '</div>';
+    }).join('');
+  }
+  function renderAll() { renderControls(); renderList(); }
+
+  /* sheet */
+  function currentHash() { return (location.hash || '').replace('#', ''); }
+  function showSheet(name, title) {
+    $('sheet-title').textContent = title;
+    $('sheet').hidden = false; $('scrim').hidden = false;
+    document.documentElement.classList.add('lock');
+    $('sheet-body').scrollTop = 0;
+    var h = currentHash();
+    if (h !== name) {
+      try {
+        if (SHEETS.indexOf(h) >= 0) location.replace('#' + name); else location.hash = name;
+      } catch (e) {}
+    }
+  }
+  function hideAll() {
+    $('sheet').hidden = true; $('scrim').hidden = true;
+    document.documentElement.classList.remove('lock');
+  }
+  function closeSheet() {
+    hideAll();
+    if (SHEETS.indexOf(currentHash()) >= 0) { try { history.back(); } catch (e) {} }
+  }
+
+  /* detail */
+  function mapLinks(it) {
+    var q = encodeURIComponent(it.name + (it.addr ? ' ' + it.addr : ''));
+    return '<div class="maps">' +
+      '<a href="https://map.naver.com/p/search/' + q + '" target="_blank" rel="noopener noreferrer">네이버지도</a>' +
+      '<a href="https://map.kakao.com/?q=' + q + '" target="_blank" rel="noopener noreferrer">카카오맵</a>' +
+      '<a href="https://www.google.com/maps/search/?api=1&amp;query=' + q + '" target="_blank" rel="noopener noreferrer">구글지도</a></div>';
+  }
+  function actionsHtml() {
+    if (confirmDel) {
+      return '<div class="confirm"><p>이 맛집을 삭제할까요? 되돌릴 수 없어요.</p><div class="row"><button class="btn danger" type="button" data-act="del-yes">삭제</button><button class="btn" type="button" data-act="del-no">취소</button></div></div>';
+    }
+    return '<div class="row"><button class="btn primary" type="button" data-act="edit">수정</button><button class="btn danger" type="button" data-act="del">삭제</button></div>';
+  }
+  function renderDetail() {
+    var it = byId(currentId);
+    if (!it) { closeSheet(); return; }
+    var rows = '';
+    if (it.addr) rows += '<div><dt>위치</dt><dd class="addr-row"><span id="d-addr">' + esc(it.addr) + '</span><button class="btn small" type="button" data-act="copy">복사</button></dd></div>';
+    if (it.status === 'visited' && it.date) rows += '<div><dt>방문일</dt><dd>' + fmtDate(it.date) + '</dd></div>';
+    if (it.dish) rows += '<div><dt>메뉴</dt><dd>' + esc(it.dish) + '</dd></div>';
+    if (it.memo) rows += '<div><dt>메모</dt><dd>' + esc(it.memo) + '</dd></div>';
+    $('sheet-body').innerHTML =
+      '<div class="d-head"><span class="pill ' + (it.status === 'visited' ? 'visited' : 'want') + '">' + (it.status === 'visited' ? '가본 곳' : '가볼 곳') + '</span>' +
+      '<span class="meta">' + esc(it.cat) + '</span>' + (it.sample ? '<span class="tag-sample">예시</span>' : '') + '</div>' +
+      '<h3 class="d-name">' + esc(it.name) + '</h3>' +
+      (it.status === 'visited' && it.rating ? '<div class="rate">' + starsHtml(it.rating) + '</div>' : '') +
+      (rows ? '<dl class="dl">' + rows + '</dl>' : '') +
+      mapLinks(it) + '<div id="d-actions">' + actionsHtml() + '</div>';
+  }
+  function openDetail(id) {
+    currentId = id; confirmDel = false;
+    var it = byId(id); if (!it) return;
+    renderDetail();
+    showSheet('detail', '맛집 정보');
+  }
+
+  /* form */
+  function paintStars() {
+    var bs = document.querySelectorAll('#stars-in button');
+    for (var i = 0; i < bs.length; i++) {
+      var on = (i + 1) <= formRating;
+      bs[i].className = on ? 'on' : '';
+      bs[i].setAttribute('aria-pressed', String((i + 1) === formRating));
+    }
+  }
+  function openForm(id) {
+    editingId = id;
+    var v = id ? byId(id) : { name: '', cat: '한식', addr: '', status: 'want', rating: 0, date: '', dish: '', memo: '' };
+    if (!v) return;
+    formRating = v.rating || 0;
+    var catOpts = CATS.map(function (c) { return '<option' + (c === v.cat ? ' selected' : '') + '>' + c + '</option>'; }).join('');
+    var visited = v.status === 'visited';
+    $('sheet-body').innerHTML =
+      '<form id="entry-form" novalidate>' +
+      '<div class="field"><label for="f-name">가게 이름</label><input class="in" id="f-name" type="text" maxlength="80" autocomplete="off" placeholder="예: 골목 칼국수" value="' + esc(v.name) + '"></div>' +
+      '<div class="two"><div class="field"><label for="f-cat">종류</label><select class="in" id="f-cat">' + catOpts + '</select></div>' +
+      '<div class="field"><label for="f-addr">동네 또는 주소</label><input class="in" id="f-addr" type="text" maxlength="120" autocomplete="off" placeholder="예: 성수동" value="' + esc(v.addr) + '"></div></div>' +
+      '<div class="field"><span class="lab" id="lab-status">상태</span><div class="seg2" role="radiogroup" aria-labelledby="lab-status">' +
+      '<label><input type="radio" name="f-status" value="want"' + (visited ? '' : ' checked') + '><span>가볼 곳</span></label>' +
+      '<label><input type="radio" name="f-status" value="visited"' + (visited ? ' checked' : '') + '><span>가본 곳</span></label></div></div>' +
+      '<div id="visit-block"' + (visited ? '' : ' hidden') + ' style="display:flex;flex-direction:column;gap:16px">' +
+      '<div class="field"><span class="lab" id="lab-rate">별점 (같은 별을 다시 누르면 해제)</span><div class="stars-in" id="stars-in" role="group" aria-labelledby="lab-rate">' +
+      [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-v="' + n + '" aria-label="' + n + '점">★</button>'; }).join('') + '</div></div>' +
+      '<div class="field"><label for="f-date">방문일</label><input class="in" id="f-date" type="date" value="' + esc(v.date) + '"></div></div>' +
+      '<div class="field"><label for="f-dish">먹은 메뉴, 먹고 싶은 메뉴</label><input class="in" id="f-dish" type="text" maxlength="120" autocomplete="off" placeholder="예: 바지락칼국수, 만두" value="' + esc(v.dish) + '"></div>' +
+      '<div class="field"><label for="f-memo">메모</label><textarea class="in" id="f-memo" maxlength="1000" placeholder="웨이팅, 주차, 영업시간, 같이 간 사람 등">' + esc(v.memo) + '</textarea></div>' +
+      '<p class="err" id="f-err" role="alert"></p>' +
+      '<div class="row"><button class="btn primary" type="submit">저장</button><button class="btn" type="button" data-act="cancel">취소</button></div>' +
+      '</form>';
+    paintStars();
+    showSheet('edit', id ? '맛집 수정' : '맛집 추가');
+    if (!id) { var f = $('f-name'); if (f) f.focus(); }
+  }
+  function submitForm(e) {
+    e.preventDefault();
+    var name = $('f-name').value.trim();
+    if (!name) { $('f-err').textContent = '가게 이름을 입력해 주세요.'; $('f-name').focus(); return; }
+    var status = document.querySelector('input[name="f-status"]:checked').value;
+    var rec = {
+      name: name, cat: $('f-cat').value, addr: $('f-addr').value.trim(), status: status,
+      rating: status === 'visited' ? formRating : 0,
+      date: status === 'visited' ? $('f-date').value : '',
+      dish: $('f-dish').value.trim(), memo: $('f-memo').value.trim()
+    };
+    var wasEdit = !!editingId;
+    if (wasEdit) {
+      var it = byId(editingId);
+      if (it) { Object.assign(it, rec); it.sample = false; }
+    } else {
+      rec.id = uid(); rec.createdAt = Date.now(); rec.sample = false;
+      items.push(rec);
+    }
+    save(); renderAll(); closeSheet();
+    toast(wasEdit ? '수정했어요' : '저장했어요');
+  }
+
+  /* backup */
+  function exportText() {
+    return JSON.stringify(items.filter(function (i) { return !i.sample; }), null, 2);
+  }
+  function renderBackup() {
+    var hasSample = items.some(function (i) { return i.sample; });
+    $('sheet-body').innerHTML =
+      '<div class="bk"><h3 class="sec-title">백업 복사</h3>' +
+      '<p class="help">기록은 이 폰의 브라우저에만 저장돼요. 아래 텍스트를 복사해 메모 앱이나 카카오톡 나에게 보내기에 보관해 두면 폰을 바꿔도 옮길 수 있어요.</p>' +
+      '<textarea class="in mono" id="bk-out" readonly aria-label="백업 텍스트">' + esc(exportText()) + '</textarea>' +
+      '<button class="btn primary" type="button" data-act="bk-copy">백업 텍스트 복사</button></div>' +
+      '<div class="bk"><h3 class="sec-title">백업 가져오기</h3>' +
+      '<p class="help">복사해 둔 텍스트를 붙여넣으면 지금 목록에 합쳐져요. 이미 있는 가게는 건너뜁니다.</p>' +
+      '<textarea class="in mono" id="bk-in" placeholder="여기에 붙여넣기" aria-label="가져올 백업 텍스트"></textarea>' +
+      '<button class="btn" type="button" data-act="bk-import">가져오기</button></div>' +
+      (hasSample ? '<div class="bk"><h3 class="sec-title">예시 정리</h3><p class="help">처음에 들어 있는 예시 3곳을 지웁니다.</p><button class="btn danger" type="button" data-act="bk-sample">예시 삭제</button></div>' : '');
+  }
+  function openBackup() { renderBackup(); showSheet('backup', '백업'); }
+  function normalize(x, id) {
+    var s = function (v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; };
+    var rating = Math.round(Number(x.rating) || 0);
+    var status = x.status === 'visited' ? 'visited' : 'want';
+    return {
+      id: id, sample: false, name: s(x.name, 80).trim(),
+      cat: CATS.indexOf(x.cat) >= 0 ? x.cat : '기타', addr: s(x.addr, 120),
+      status: status, rating: status === 'visited' ? Math.max(0, Math.min(5, rating)) : 0,
+      date: typeof x.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.date) ? x.date : '',
+      dish: s(x.dish, 120), memo: s(x.memo, 1000),
+      createdAt: typeof x.createdAt === 'number' ? x.createdAt : Date.now()
+    };
+  }
+  function doImport() {
+    var t = $('bk-in').value.trim();
+    if (!t) { toast('붙여넣은 내용이 없어요'); return; }
+    var d;
+    try { d = JSON.parse(t); } catch (e) { toast('형식이 맞지 않아요. 복사한 백업 텍스트를 그대로 붙여넣어 주세요.'); return; }
+    if (d && !Array.isArray(d) && Array.isArray(d.items)) d = d.items;
+    if (!Array.isArray(d)) { toast('가져올 목록을 찾지 못했어요'); return; }
+    var have = {}; items.forEach(function (i) { have[i.id] = 1; });
+    var n = 0;
+    d.forEach(function (x) {
+      if (!x || typeof x.name !== 'string' || !x.name.trim()) return;
+      var id = typeof x.id === 'string' && x.id ? x.id : uid();
+      if (have[id]) return;
+      have[id] = 1; items.push(normalize(x, id)); n++;
+    });
+    save(); renderAll(); renderBackup();
+    toast(n + '곳을 가져왔어요');
+  }
+  function copyText(text, srcEl) {
+    function fallback() {
+      try { if (srcEl) { srcEl.focus(); if (srcEl.select) srcEl.select(); } } catch (e) {}
+      toast('길게 눌러 직접 복사해 주세요');
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { toast('복사했어요'); }, fallback);
+    } catch (e) { fallback(); }
+  }
+
+  /* events */
+  $('q').addEventListener('input', function (e) { ui.q = e.target.value; renderList(); });
+  $('sort').addEventListener('change', function (e) { ui.sort = e.target.value; renderList(); });
+  $('status-seg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-status]'); if (!b) return;
+    ui.status = b.getAttribute('data-status'); renderAll();
+  });
+  $('cat-row').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cat]'); if (!b) return;
+    ui.cat = b.getAttribute('data-cat'); renderAll();
+  });
+  $('list').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-id]'); if (c) openDetail(c.getAttribute('data-id'));
+  });
+  $('list').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var c = e.target.closest('[data-id]'); if (c) { e.preventDefault(); openDetail(c.getAttribute('data-id')); }
+  });
+  $('fab').addEventListener('click', function () { openForm(null); });
+  $('btn-backup').addEventListener('click', openBackup);
+  $('sheet-close').addEventListener('click', closeSheet);
+  $('scrim').addEventListener('click', closeSheet);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
+  window.addEventListener('hashchange', function () { if (SHEETS.indexOf(currentHash()) < 0) hideAll(); });
+
+  $('sheet-body').addEventListener('submit', function (e) { if (e.target.id === 'entry-form') submitForm(e); });
+  $('sheet-body').addEventListener('change', function (e) {
+    if (e.target.name === 'f-status') {
+      var vis = e.target.value === 'visited';
+      $('visit-block').hidden = !vis;
+      if (vis && !$('f-date').value) $('f-date').value = today();
+    }
+  });
+  $('sheet-body').addEventListener('click', function (e) {
+    var star = e.target.closest('#stars-in [data-v]');
+    if (star) {
+      var n = Number(star.getAttribute('data-v'));
+      formRating = (formRating === n) ? 0 : n; paintStars(); return;
+    }
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'edit') openForm(currentId);
+    else if (act === 'cancel') closeSheet();
+    else if (act === 'del') { confirmDel = true; $('d-actions').innerHTML = actionsHtml(); }
+    else if (act === 'del-no') { confirmDel = false; $('d-actions').innerHTML = actionsHtml(); }
+    else if (act === 'del-yes') {
+      items = items.filter(function (i) { return i.id !== currentId; });
+      save(); renderAll(); closeSheet(); toast('삭제했어요');
+    }
+    else if (act === 'copy') { var a = $('d-addr'); copyText(a ? a.textContent : '', null); }
+    else if (act === 'bk-copy') copyText($('bk-out').value, $('bk-out'));
+    else if (act === 'bk-import') doImport();
+    else if (act === 'bk-sample') {
+      items = items.filter(function (i) { return !i.sample; });
+      save(); renderAll(); renderBackup(); toast('예시를 지웠어요');
+    }
+  });
+
+  /* start */
+  var loaded = load();
+  if (loaded === null) { items = seed(); save(); } else { items = loaded; }
+  renderAll();
+})();
+</script>
